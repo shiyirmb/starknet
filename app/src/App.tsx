@@ -20,7 +20,7 @@ function App() {
   });
   const [vk, setVk] = useState<Uint8Array | null>(null);
   const [inputX, setInputX] = useState<number>(5);
-  const [inputY, setInputY] = useState<number>(10);
+  const [inputY, setInputY] = useState<number>(2);
   // Use a ref to reliably track the current state across asynchronous operations
   const currentStateRef = useRef<ProofState>(ProofState.Initial);
 
@@ -97,15 +97,15 @@ function App() {
       const input = { x: inputX, y: inputY };
       
       // Generate witness
-      let noir = new Noir({ bytecode, abi: abi as any });
-      let execResult = await noir.execute(input);
+      const noir = new Noir({ bytecode, abi: abi as unknown as any });
+      const execResult = await noir.execute(input);
       console.log(execResult);
       
       // Generate proof
       updateState(ProofState.GeneratingProof);
 
-      let honk = new UltraHonkBackend(bytecode, { threads: 2 });
-      let proof = await honk.generateProof(execResult.witness, { starknet: true });
+      const honk = new UltraHonkBackend(bytecode, { threads: 2 });
+      const proof = await honk.generateProof(execResult.witness, { starknet: true });
       honk.destroy();
       console.log(proof);
       
@@ -127,9 +127,9 @@ function App() {
       // Send transaction
       updateState(ProofState.SendingTransaction);
 
-      const provider = new RpcProvider({ nodeUrl: 'http://127.0.0.1:5050/rpc' });
+      const provider = new RpcProvider({ nodeUrl: 'https://starknet-sepolia.public.blastapi.io/rpc/v0_8' });
       // TODO: use conract address from the result of the `make deploy-verifier` step
-      const contractAddress = '0x02b76ac09aea8957666f0fb3409b091e2bdca99700273af44358bd2ed0e14a32';
+      const contractAddress = '0x02b7d9314b98dd48f46a0273c96dde8205daea071a8a8398ba5a0475a7842958';
       const verifierContract = new Contract(verifierAbi, contractAddress, provider);
       
       // Check verification
@@ -186,31 +186,33 @@ function App() {
       
       <div className="state-machine">
         <div className="input-section">
-          <div className="input-group">
-            <label htmlFor="input-x">X:</label>
-            <input 
-              id="input-x"
-              type="text" 
-              value={inputX} 
-              onChange={(e) => {
-                const value = parseInt(e.target.value);
-                setInputX(isNaN(value) ? 0 : value);
-              }} 
-              disabled={proofState.state !== ProofState.Initial}
-            />
-          </div>
-          <div className="input-group">
-            <label htmlFor="input-y">Y:</label>
-            <input 
-              id="input-y"
-              type="text" 
-              value={inputY} 
-              onChange={(e) => {
-                const value = parseInt(e.target.value);
-                setInputY(isNaN(value) ? 0 : value);
-              }} 
-              disabled={proofState.state !== ProofState.Initial}
-            />
+          <div className="input-row">
+            <div className="input-group">
+              <label htmlFor="input-x">X:</label>
+              <input 
+                id="input-x"
+                type="text" 
+                value={inputX} 
+                onChange={(e) => {
+                  const value = parseInt(e.target.value);
+                  setInputX(isNaN(value) ? 0 : value);
+                }} 
+                disabled={proofState.state !== ProofState.Initial}
+              />
+            </div>
+            <div className="input-group">
+              <label htmlFor="input-y">Y:</label>
+              <input 
+                id="input-y"
+                type="text" 
+                value={inputY} 
+                onChange={(e) => {
+                  const value = parseInt(e.target.value);
+                  setInputY(isNaN(value) ? 0 : value);
+                }} 
+                disabled={proofState.state !== ProofState.Initial}
+              />
+            </div>
           </div>
         </div>
         
@@ -229,7 +231,9 @@ function App() {
       
       <div className="controls">
         {proofState.state === ProofState.Initial && !proofState.error && (
-          <button className="primary-button" onClick={startProcess}>Start</button>
+          <button className="primary-button" onClick={startProcess} disabled={inputX === inputY * inputY}>
+            {inputX === inputY * inputY ? '条件不满足' : 'Start'}
+          </button>
         )}
         
         {(proofState.error || proofState.state === ProofState.ProofVerified) && (
